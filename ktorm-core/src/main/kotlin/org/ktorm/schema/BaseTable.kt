@@ -19,8 +19,9 @@ package org.ktorm.schema
 import org.ktorm.dsl.QueryRowSet
 import org.ktorm.entity.Entity
 import org.ktorm.expression.TableExpression
-import java.util.*
-import kotlin.collections.LinkedHashSet
+import java.util.LinkedHashMap
+import java.util.LinkedList
+import java.util.NoSuchElementException
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmErasure
 
@@ -350,9 +351,10 @@ public abstract class BaseTable<E : Any>(
     public fun createEntity(row: QueryRowSet, withReferences: Boolean = true): E {
         val entity = doCreateEntity(row, withReferences)
 
-        val logger = row.query.database.logger
-        if (logger.isTraceEnabled()) {
-            logger.trace("Entity: $entity")
+        row.query.database.loggers.forEach { logger ->
+            if (logger.isTraceEnabled()) {
+                logger.trace("Entity: $entity")
+            }
         }
 
         return entity

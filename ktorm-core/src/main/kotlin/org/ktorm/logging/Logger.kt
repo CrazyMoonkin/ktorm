@@ -29,7 +29,7 @@ import org.ktorm.logging.LogLevel.*
  *
  * By default, Ktorm auto detects a logging implementation from the classpath while creating [Database] instances.
  * If you want to output logs using a specific logging framework, you can choose an adapter implementation of this
- * interface and explicitly set the [Database.logger] property.
+ * interface and explicitly set the [Database.loggers] property.
  *
  * Ktorm prints logs at different levels:
  *

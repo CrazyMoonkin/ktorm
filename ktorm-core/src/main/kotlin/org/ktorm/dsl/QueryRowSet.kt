@@ -126,9 +126,10 @@ public class QueryRowSet internal constructor(public val query: Query, rs: Resul
             }
 
             if (indices.size > 1) {
-                val logger = query.database.logger
-                if (logger.isWarnEnabled()) {
-                    logger.warn(warningConfusedColumnName(column.name))
+                query.database.loggers.forEach { logger ->
+                    if (logger.isWarnEnabled()) {
+                        logger.warn(warningConfusedColumnName(column.name))
+                    }
                 }
             }
 

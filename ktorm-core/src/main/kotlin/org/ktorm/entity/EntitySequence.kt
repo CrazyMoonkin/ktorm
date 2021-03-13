@@ -18,19 +18,32 @@ package org.ktorm.entity
 
 import org.ktorm.database.Database
 import org.ktorm.database.DialectFeatureNotSupportedException
-import org.ktorm.dsl.*
+import org.ktorm.dsl.IndexingIterator
+import org.ktorm.dsl.Query
+import org.ktorm.dsl.QueryRowSet
+import org.ktorm.dsl.and
+import org.ktorm.dsl.asc
+import org.ktorm.dsl.avg
+import org.ktorm.dsl.desc
+import org.ktorm.dsl.from
+import org.ktorm.dsl.joinReferencesAndSelect
+import org.ktorm.dsl.map
+import org.ktorm.dsl.mapNotNullTo
+import org.ktorm.dsl.mapTo
+import org.ktorm.dsl.max
+import org.ktorm.dsl.min
+import org.ktorm.dsl.not
+import org.ktorm.dsl.select
+import org.ktorm.dsl.sum
 import org.ktorm.expression.OrderByExpression
 import org.ktorm.expression.SelectExpression
 import org.ktorm.schema.BaseTable
 import org.ktorm.schema.Column
 import org.ktorm.schema.ColumnDeclaring
 import java.sql.ResultSet
-import java.util.*
-import kotlin.NoSuchElementException
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashMap
-import kotlin.collections.LinkedHashSet
+import java.util.Comparator
+import java.util.SortedSet
+import java.util.TreeSet
 import kotlin.experimental.ExperimentalTypeInference
 import kotlin.math.min
 
@@ -1011,8 +1024,10 @@ public fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.elementAtOrNull(inde
         for (element in this.drop(index).take(1)) return element
         return null
     } catch (e: DialectFeatureNotSupportedException) {
-        if (database.logger.isTraceEnabled()) {
-            database.logger.trace("Pagination is not supported, retrieving all records instead: ", e)
+        database.loggers.forEach { logger ->
+            if (logger.isTraceEnabled()) {
+                logger.trace("Pagination is not supported, retrieving all records instead: ", e)
+            }
         }
 
         var count = 0
