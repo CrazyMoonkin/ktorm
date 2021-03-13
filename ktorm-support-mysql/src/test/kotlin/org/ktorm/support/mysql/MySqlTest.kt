@@ -49,7 +49,7 @@ class MySqlTest : BaseTest() {
             driver = mysql.driverClassName,
             user = mysql.username,
             password = mysql.password,
-            logger = ConsoleLogger(threshold = LogLevel.TRACE)
+            loggers = listOf(ConsoleLogger(threshold = LogLevel.TRACE))
         )
 
         execSqlScript("init-mysql-data.sql")

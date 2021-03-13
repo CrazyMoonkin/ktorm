@@ -160,8 +160,10 @@ public fun <T : BaseTable<*>> Database.insertAndGenerateKey(table: T, block: Ass
         val pk = table.singlePrimaryKey { "Key retrieval is not supported for compound primary keys." }
         val generatedKey = pk.sqlType.getResult(rowSet, 1) ?: error("Generated key is null.")
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Generated Key: $generatedKey")
+        loggers.forEach { logger ->
+            if (logger.isDebugEnabled()) {
+                logger.debug("Generated Key: $generatedKey")
+            }
         }
 
         return generatedKey

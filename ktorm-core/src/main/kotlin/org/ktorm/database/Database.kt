@@ -16,6 +16,7 @@
 
 package org.ktorm.database
 
+import org.ktorm.database.Database.Companion.connect
 import org.ktorm.dsl.Query
 import org.ktorm.entity.EntitySequence
 import org.ktorm.expression.ArgumentExpression
@@ -25,8 +26,12 @@ import org.ktorm.logging.detectLoggerImplementation
 import org.springframework.dao.DataAccessException
 import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator
 import org.springframework.transaction.annotation.Transactional
-import java.sql.*
-import java.util.*
+import java.sql.Connection
+import java.sql.DriverManager
+import java.sql.PreparedStatement
+import java.sql.SQLException
+import java.sql.Statement
+import java.util.ServiceLoader
 import javax.sql.DataSource
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -114,7 +119,13 @@ public class Database(
     /**
      * The logger used to output logs, auto detects an implementation by default.
      */
+    @Deprecated("Will be replaced with loggers property", ReplaceWith("loggers: List<Logger>"))
     public val logger: Logger = detectLoggerImplementation(),
+
+    /**
+     * The logger used to output logs, auto detects an implementation by default.
+     */
+    public val loggers: List<Logger> = listOf(logger),
 
     /**
      * Function used to translate SQL exceptions so as to rethrow them to users.
@@ -268,9 +279,13 @@ public class Database(
             maxColumnNameLength = metadata.runCatching { maxColumnNameLength }.getOrDefault(0)
         }
 
-        if (logger.isInfoEnabled()) {
-            logger.info("Connected to $url, productName: $productName, " +
-                "productVersion: $productVersion, logger: $logger, dialect: $dialect")
+        loggers.forEach { logger ->
+            if (logger.isInfoEnabled()) {
+                logger.info(
+                    "Connected to $url, productName: $productName, " +
+                            "productVersion: $productVersion, logger: $logger, dialect: $dialect"
+                )
+            }
         }
     }
 
@@ -388,9 +403,11 @@ public class Database(
 
         val (sql, args) = formatExpression(expression)
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("SQL: $sql")
-            logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.typeName})" })
+        loggers.forEach { logger ->
+            if (logger.isDebugEnabled()) {
+                logger.debug("SQL: $sql")
+                logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.typeName})" })
+            }
         }
 
         useConnection { conn ->
@@ -414,8 +431,10 @@ public class Database(
             statement.executeQuery().use { rs ->
                 val rowSet = CachedRowSet(rs)
 
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Results: ${rowSet.size()}")
+                loggers.forEach { logger ->
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Results: ${rowSet.size()}")
+                    }
                 }
 
                 return rowSet
@@ -435,8 +454,10 @@ public class Database(
         executeExpression(expression) { statement ->
             val effects = statement.executeUpdate()
 
-            if (logger.isDebugEnabled()) {
-                logger.debug("Effects: $effects")
+            loggers.forEach { logger ->
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Effects: $effects")
+                }
             }
 
             return effects
@@ -454,15 +475,19 @@ public class Database(
     public fun executeUpdateAndRetrieveKeys(expression: SqlExpression): Pair<Int, CachedRowSet> {
         val (sql, args) = formatExpression(expression)
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("SQL: $sql")
-            logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.typeName})" })
+        loggers.forEach { logger ->
+            if (logger.isDebugEnabled()) {
+                logger.debug("SQL: $sql")
+                logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.typeName})" })
+            }
         }
 
         val (effects, rowSet) = dialect.executeUpdateAndRetrieveKeys(this, sql, args)
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Effects: $effects")
+        loggers.forEach { logger ->
+            if (logger.isDebugEnabled()) {
+                logger.debug("Effects: $effects")
+            }
         }
 
         return Pair(effects, rowSet)
@@ -481,10 +506,11 @@ public class Database(
     public fun executeBatch(expressions: List<SqlExpression>): IntArray {
         val (sql, _) = formatExpression(expressions[0])
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("SQL: $sql")
+        loggers.forEach { logger ->
+            if (logger.isDebugEnabled()) {
+                logger.debug("SQL: $sql")
+            }
         }
-
         useConnection { conn ->
             conn.prepareStatement(sql).use { statement ->
                 for (expr in expressions) {
@@ -495,8 +521,10 @@ public class Database(
                             "Every item in a batch operation must generate the same SQL: \n\n$subSql"
                         )
                     }
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.typeName})" })
+                    loggers.forEach { logger ->
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.typeName})" })
+                        }
                     }
 
                     statement.setArguments(args)
@@ -505,8 +533,10 @@ public class Database(
 
                 val effects = statement.executeBatch()
 
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Effects: ${effects?.contentToString()}")
+                loggers.forEach { logger ->
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Effects: ${effects?.contentToString()}")
+                    }
                 }
 
                 return effects
@@ -529,6 +559,12 @@ public class Database(
          * @param connector the connector function used to obtain SQL connections.
          * @return the new-created database object.
          */
+        @Deprecated(
+            message = "This function will be removed in the future. Please use connect(..) instead.",
+            replaceWith = ReplaceWith(
+                "connect(dialect, loggers, alwaysQuoteIdentifiers, generateSqlInUpperCase, connector)"
+            )
+        )
         public fun connect(
             dialect: SqlDialect = detectDialectImplementation(),
             logger: Logger = detectLoggerImplementation(),
@@ -536,10 +572,36 @@ public class Database(
             generateSqlInUpperCase: Boolean? = null,
             connector: () -> Connection
         ): Database {
+            return connect(
+                dialect = dialect,
+                loggers = listOf(logger),
+                alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
+                generateSqlInUpperCase = generateSqlInUpperCase,
+                connector = connector
+            )
+        }
+
+        /**
+         * Connect to a database by a specific [connector] function.
+         *
+         * @param dialect the dialect, auto detects an implementation by default using JDK [ServiceLoader] facility.
+         * @param loggers loggers used to output logs, auto detects an implementation by default.
+         * @param alwaysQuoteIdentifiers whether we need to always quote SQL identifiers in the generated SQLs.
+         * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
+         * @param connector the connector function used to obtain SQL connections.
+         * @return the new-created database object.
+         */
+        public fun connect(
+            dialect: SqlDialect = detectDialectImplementation(),
+            loggers: List<Logger> = listOf(detectLoggerImplementation()),
+            alwaysQuoteIdentifiers: Boolean = false,
+            generateSqlInUpperCase: Boolean? = null,
+            connector: () -> Connection
+        ): Database {
             return Database(
                 transactionManager = JdbcTransactionManager(connector),
                 dialect = dialect,
-                logger = logger,
+                loggers = loggers,
                 alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
                 generateSqlInUpperCase = generateSqlInUpperCase
             )
@@ -555,6 +617,12 @@ public class Database(
          * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
          * @return the new-created database object.
          */
+        @Deprecated(
+            message = "This function will be removed in the future. Please use connect(..) instead.",
+            replaceWith = ReplaceWith(
+                "connect(dataSource, dialect, loggers, alwaysQuoteIdentifiers, generateSqlInUpperCase)"
+            )
+        )
         public fun connect(
             dataSource: DataSource,
             dialect: SqlDialect = detectDialectImplementation(),
@@ -562,10 +630,36 @@ public class Database(
             alwaysQuoteIdentifiers: Boolean = false,
             generateSqlInUpperCase: Boolean? = null
         ): Database {
+            return connect(
+                dataSource = dataSource,
+                dialect = dialect,
+                loggers = listOf(logger),
+                alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
+                generateSqlInUpperCase = generateSqlInUpperCase
+            )
+        }
+
+        /**
+         * Connect to a database using a [DataSource].
+         *
+         * @param dataSource the data source used to obtain SQL connections.
+         * @param dialect the dialect, auto detects an implementation by default using JDK [ServiceLoader] facility.
+         * @param loggers loggers used to output logs, auto detects an implementation by default.
+         * @param alwaysQuoteIdentifiers whether we need to always quote SQL identifiers in the generated SQLs.
+         * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
+         * @return the new-created database object.
+         */
+        public fun connect(
+            dataSource: DataSource,
+            dialect: SqlDialect = detectDialectImplementation(),
+            loggers: List<Logger> = listOf(detectLoggerImplementation()),
+            alwaysQuoteIdentifiers: Boolean = false,
+            generateSqlInUpperCase: Boolean? = null
+        ): Database {
             return Database(
                 transactionManager = JdbcTransactionManager { dataSource.connection },
                 dialect = dialect,
-                logger = logger,
+                loggers = loggers,
                 alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
                 generateSqlInUpperCase = generateSqlInUpperCase
             )
@@ -584,6 +678,13 @@ public class Database(
          * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
          * @return the new-created database object.
          */
+        @Deprecated(
+            message = "This function will be removed in the future. Please use connect(..) instead.",
+            replaceWith = ReplaceWith(
+                "connect(url, driver, user, password, dialect, loggers, alwaysQuoteIdentifiers, " +
+                        "generateSqlInUpperCase)"
+            )
+        )
         public fun connect(
             url: String,
             driver: String? = null,
@@ -594,6 +695,41 @@ public class Database(
             alwaysQuoteIdentifiers: Boolean = false,
             generateSqlInUpperCase: Boolean? = null
         ): Database {
+            return connect(
+                url,
+                driver,
+                user,
+                password,
+                dialect,
+                listOf(logger),
+                alwaysQuoteIdentifiers,
+                generateSqlInUpperCase
+            )
+        }
+
+        /**
+         * Connect to a database using the specific connection arguments.
+         *
+         * @param url the URL of the database to be connected.
+         * @param driver the full qualified name of the JDBC driver class.
+         * @param user the user name of the database.
+         * @param password the password of the database.
+         * @param dialect the dialect, auto detects an implementation by default using JDK [ServiceLoader] facility.
+         * @param loggers loggers used to output logs, auto detects an implementation by default.
+         * @param alwaysQuoteIdentifiers whether we need to always quote SQL identifiers in the generated SQLs.
+         * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
+         * @return the new-created database object.
+         */
+        public fun connect(
+            url: String,
+            driver: String? = null,
+            user: String? = null,
+            password: String? = null,
+            dialect: SqlDialect = detectDialectImplementation(),
+            loggers: List<Logger> = listOf(detectLoggerImplementation()),
+            alwaysQuoteIdentifiers: Boolean = false,
+            generateSqlInUpperCase: Boolean? = null
+        ): Database {
             if (driver != null && driver.isNotBlank()) {
                 Class.forName(driver)
             }
@@ -601,7 +737,7 @@ public class Database(
             return Database(
                 transactionManager = JdbcTransactionManager { DriverManager.getConnection(url, user, password) },
                 dialect = dialect,
-                logger = logger,
+                loggers = loggers,
                 alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
                 generateSqlInUpperCase = generateSqlInUpperCase
             )
@@ -624,6 +760,13 @@ public class Database(
          * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
          * @return the new-created database object.
          */
+        @Deprecated(
+            message = "This function will be removed in the future. Please use connectWithSpringSupport(..) instead.",
+            replaceWith = ReplaceWith(
+                "connectWithSpringSupport(dataSource, dialect, loggers, alwaysQuoteIdentifiers, " +
+                        "generateSqlInUpperCase)"
+            )
+        )
         public fun connectWithSpringSupport(
             dataSource: DataSource,
             dialect: SqlDialect = detectDialectImplementation(),
@@ -631,11 +774,44 @@ public class Database(
             alwaysQuoteIdentifiers: Boolean = false,
             generateSqlInUpperCase: Boolean? = null
         ): Database {
+            return connectWithSpringSupport(
+                dataSource,
+                dialect,
+                listOf(logger),
+                alwaysQuoteIdentifiers,
+                generateSqlInUpperCase
+            )
+        }
+
+        /**
+         * Connect to a database using a [DataSource] with the Spring support enabled.
+         *
+         * Once the Spring support is enabled, the transaction management will be delegated to the Spring framework,
+         * so the [useTransaction] function is not available anymore, we need to use Spring's [Transactional]
+         * annotation instead.
+         *
+         * This function also enables the exception translation, which can convert any [SQLException] thrown by JDBC
+         * to Spring's [DataAccessException] and rethrow it.
+         *
+         * @param dataSource the data source used to obtain SQL connections.
+         * @param dialect the dialect, auto detects an implementation by default using JDK [ServiceLoader] facility.
+         * @param loggers loggers used to output logs, auto detects an implementation by default.
+         * @param alwaysQuoteIdentifiers whether we need to always quote SQL identifiers in the generated SQLs.
+         * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
+         * @return the new-created database object.
+         */
+        public fun connectWithSpringSupport(
+            dataSource: DataSource,
+            dialect: SqlDialect = detectDialectImplementation(),
+            loggers: List<Logger> = listOf(detectLoggerImplementation()),
+            alwaysQuoteIdentifiers: Boolean = false,
+            generateSqlInUpperCase: Boolean? = null
+        ): Database {
             val translator = SQLErrorCodeSQLExceptionTranslator(dataSource)
             return Database(
                 transactionManager = SpringManagedTransactionManager(dataSource),
                 dialect = dialect,
-                logger = logger,
+                loggers = loggers,
                 exceptionTranslator = { ex -> translator.translate("Ktorm", null, ex) },
                 alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
                 generateSqlInUpperCase = generateSqlInUpperCase

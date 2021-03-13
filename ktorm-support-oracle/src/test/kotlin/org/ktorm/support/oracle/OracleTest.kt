@@ -48,7 +48,7 @@ class OracleTest : BaseTest() {
             driver = oracle.driverClassName,
             user = oracle.username,
             password = oracle.password,
-            logger = ConsoleLogger(threshold = LogLevel.TRACE),
+            loggers = listOf(ConsoleLogger(threshold = LogLevel.TRACE)),
             alwaysQuoteIdentifiers = true
         )
 

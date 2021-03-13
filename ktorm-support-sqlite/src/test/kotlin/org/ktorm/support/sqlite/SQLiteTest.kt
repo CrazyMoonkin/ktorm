@@ -38,7 +38,7 @@ class SQLiteTest : BaseTest() {
     override fun init() {
         connection = DriverManager.getConnection("jdbc:sqlite::memory:")
 
-        database = Database.connect(logger = ConsoleLogger(LogLevel.TRACE)) {
+        database = Database.connect(loggers = listOf(ConsoleLogger(LogLevel.TRACE))) {
             object : Connection by connection {
                 override fun close() {
                     // do nothing...

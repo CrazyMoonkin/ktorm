@@ -64,6 +64,13 @@ public val Database.Companion.global: Database get() {
  * @param connector the connector function used to obtain SQL connections.
  * @return the new-created database object.
  */
+@Deprecated(
+    message = "This function will be removed in the future. Please use Database.Companion.connectGlobally(..) instead.",
+    replaceWith = ReplaceWith(
+        "Database.Companion.connectGlobally(dialect, loggers, alwaysQuoteIdentifiers, " +
+                "generateSqlInUpperCase, connector)"
+    )
+)
 public fun Database.Companion.connectGlobally(
     dialect: SqlDialect = detectDialectImplementation(),
     logger: Logger = detectLoggerImplementation(),
@@ -71,10 +78,31 @@ public fun Database.Companion.connectGlobally(
     generateSqlInUpperCase: Boolean? = null,
     connector: () -> Connection
 ): Database {
+   return connectGlobally(dialect, listOf(logger), alwaysQuoteIdentifiers, generateSqlInUpperCase, connector)
+}
+
+/**
+ * Connect to a database by a specific [connector] function and save the returned database instance
+ * to [Database.Companion.global].
+ *
+ * @param dialect the dialect, auto detects an implementation by default using JDK [ServiceLoader] facility.
+ * @param logger logger used to output logs, auto detects an implementation by default.
+ * @param alwaysQuoteIdentifiers whether we need to always quote SQL identifiers in the generated SQLs.
+ * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
+ * @param connector the connector function used to obtain SQL connections.
+ * @return the new-created database object.
+ */
+public fun Database.Companion.connectGlobally(
+    dialect: SqlDialect = detectDialectImplementation(),
+    loggers: List<Logger> = listOf(detectLoggerImplementation()),
+    alwaysQuoteIdentifiers: Boolean = false,
+    generateSqlInUpperCase: Boolean? = null,
+    connector: () -> Connection
+): Database {
     val database = Database(
         transactionManager = JdbcTransactionManager(connector),
         dialect = dialect,
-        logger = logger,
+        loggers = loggers,
         alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
         generateSqlInUpperCase = generateSqlInUpperCase
     )

@@ -43,8 +43,11 @@ public open class SQLiteDialect : SqlDialect {
             }
 
             val retrieveKeySql = "select last_insert_rowid()"
-            if (database.logger.isDebugEnabled()) {
-                database.logger.debug("Retrieving generated keys by SQL: $retrieveKeySql")
+
+           database.loggers.forEach { logger ->
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Retrieving generated keys by SQL: $retrieveKeySql")
+                }
             }
 
             val rowSet = conn.prepareStatement(retrieveKeySql).use { statement ->

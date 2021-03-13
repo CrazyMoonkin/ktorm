@@ -16,10 +16,27 @@
 
 package org.ktorm.entity
 
-import org.ktorm.dsl.*
 import org.ktorm.dsl.AliasRemover
-import org.ktorm.expression.*
-import org.ktorm.schema.*
+import org.ktorm.dsl.combineConditions
+import org.ktorm.dsl.delete
+import org.ktorm.dsl.deleteAll
+import org.ktorm.expression.ArgumentExpression
+import org.ktorm.expression.BinaryExpression
+import org.ktorm.expression.BinaryExpressionType
+import org.ktorm.expression.ColumnAssignmentExpression
+import org.ktorm.expression.ColumnExpression
+import org.ktorm.expression.DeleteExpression
+import org.ktorm.expression.InsertExpression
+import org.ktorm.expression.ScalarExpression
+import org.ktorm.expression.UpdateExpression
+import org.ktorm.schema.BaseTable
+import org.ktorm.schema.BooleanSqlType
+import org.ktorm.schema.Column
+import org.ktorm.schema.ColumnDeclaring
+import org.ktorm.schema.NestedBinding
+import org.ktorm.schema.ReferenceBinding
+import org.ktorm.schema.SqlType
+import org.ktorm.schema.Table
 
 /**
  * Insert the given entity into this sequence and return the affected record number. Only non-null properties
@@ -74,8 +91,8 @@ public fun <E : Entity<E>, T : Table<E>> EntitySequence<E, T>.add(entity: E): In
         if (rowSet.next()) {
             val generatedKey = primaryKeys[0].sqlType.getResult(rowSet, 1)
             if (generatedKey != null) {
-                if (database.logger.isDebugEnabled()) {
-                    database.logger.debug("Generated Key: $generatedKey")
+                database.loggers.forEach { logger ->
+                    logger.takeIf { it.isDebugEnabled() }?.debug("Generated Key: $generatedKey")
                 }
 
                 entity.implementation.setColumnValue(primaryKeys[0].binding!!, generatedKey)

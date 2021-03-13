@@ -106,8 +106,10 @@ public class Query(public val database: Database, public val expression: QueryEx
 
             if (rowSet.next()) {
                 rowSet.getInt(1).also { total ->
-                    if (database.logger.isDebugEnabled()) {
-                        database.logger.debug("Total Records: $total")
+                    database.loggers.forEach { logger ->
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Total Records: $total")
+                        }
                     }
                 }
             } else {
