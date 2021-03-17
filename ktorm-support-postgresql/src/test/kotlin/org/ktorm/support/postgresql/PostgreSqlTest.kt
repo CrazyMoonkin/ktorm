@@ -42,7 +42,7 @@ class PostgreSqlTest : BaseTest() {
             driver = postgres.driverClassName,
             user = postgres.username,
             password = postgres.password,
-            loggers = listOf(ConsoleLogger(threshold = LogLevel.TRACE))
+            logger = ConsoleLogger(threshold = LogLevel.TRACE)
         )
 
         execSqlScript("init-postgresql-data.sql")

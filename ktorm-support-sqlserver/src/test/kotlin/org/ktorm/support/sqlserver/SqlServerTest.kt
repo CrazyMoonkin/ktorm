@@ -50,7 +50,7 @@ class SqlServerTest : BaseTest() {
             driver = sqlServer.driverClassName,
             user = sqlServer.username,
             password = sqlServer.password,
-            loggers = listOf(ConsoleLogger(threshold = LogLevel.TRACE))
+            logger = ConsoleLogger(threshold = LogLevel.TRACE)
         )
 
         execSqlScript("init-sqlserver-data.sql")

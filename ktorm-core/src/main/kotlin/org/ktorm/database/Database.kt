@@ -123,7 +123,7 @@ public class Database(
     public val logger: Logger = detectLoggerImplementation(),
 
     /**
-     * The logger used to output logs, auto detects an implementation by default.
+     * The loggers used to output logs, auto detects an implementation by default.
      */
     public val loggers: List<Logger> = listOf(logger),
 
@@ -559,12 +559,6 @@ public class Database(
          * @param connector the connector function used to obtain SQL connections.
          * @return the new-created database object.
          */
-        @Deprecated(
-            message = "This function will be removed in the future. Please use connect(..) instead.",
-            replaceWith = ReplaceWith(
-                "connect(dialect, loggers, alwaysQuoteIdentifiers, generateSqlInUpperCase, connector)"
-            )
-        )
         public fun connect(
             dialect: SqlDialect = detectDialectImplementation(),
             logger: Logger = detectLoggerImplementation(),
@@ -617,12 +611,6 @@ public class Database(
          * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
          * @return the new-created database object.
          */
-        @Deprecated(
-            message = "This function will be removed in the future. Please use connect(..) instead.",
-            replaceWith = ReplaceWith(
-                "connect(dataSource, dialect, loggers, alwaysQuoteIdentifiers, generateSqlInUpperCase)"
-            )
-        )
         public fun connect(
             dataSource: DataSource,
             dialect: SqlDialect = detectDialectImplementation(),
@@ -678,13 +666,6 @@ public class Database(
          * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
          * @return the new-created database object.
          */
-        @Deprecated(
-            message = "This function will be removed in the future. Please use connect(..) instead.",
-            replaceWith = ReplaceWith(
-                "connect(url, driver, user, password, dialect, loggers, alwaysQuoteIdentifiers, " +
-                        "generateSqlInUpperCase)"
-            )
-        )
         public fun connect(
             url: String,
             driver: String? = null,
