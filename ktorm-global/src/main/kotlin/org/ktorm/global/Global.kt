@@ -64,13 +64,6 @@ public val Database.Companion.global: Database get() {
  * @param connector the connector function used to obtain SQL connections.
  * @return the new-created database object.
  */
-@Deprecated(
-    message = "This function will be removed in the future. Please use Database.Companion.connectGlobally(..) instead.",
-    replaceWith = ReplaceWith(
-        "Database.Companion.connectGlobally(dialect, loggers, alwaysQuoteIdentifiers, " +
-                "generateSqlInUpperCase, connector)"
-    )
-)
 public fun Database.Companion.connectGlobally(
     dialect: SqlDialect = detectDialectImplementation(),
     logger: Logger = detectLoggerImplementation(),

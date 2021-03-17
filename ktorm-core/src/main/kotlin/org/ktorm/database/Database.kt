@@ -741,13 +741,6 @@ public class Database(
          * @param generateSqlInUpperCase whether we need to output the generated SQLs in upper case.
          * @return the new-created database object.
          */
-        @Deprecated(
-            message = "This function will be removed in the future. Please use connectWithSpringSupport(..) instead.",
-            replaceWith = ReplaceWith(
-                "connectWithSpringSupport(dataSource, dialect, loggers, alwaysQuoteIdentifiers, " +
-                        "generateSqlInUpperCase)"
-            )
-        )
         public fun connectWithSpringSupport(
             dataSource: DataSource,
             dialect: SqlDialect = detectDialectImplementation(),
